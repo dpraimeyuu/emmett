@@ -210,10 +210,10 @@ type CreateConnectionPool = (options: { connectionString: string }) => Connectio
 
 type CreatePostgresSQLEventStoreSubscription<EventType extends Event = Event> = (options: PostgreSQLEventStoreSubscriptionOptions<EventType>) => PostgreSQLEventStoreSubscription
 
-export type CreateMessageBatchPoolingBasedPostgresSqlEventStoreSubscription = (context: {
+export type CreateMessageBatchPoolingBasedPostgresSqlEventStoreSubscription = <EventType extends Event = Event>(context: {
   createConnectionPool: CreateConnectionPool,
   readBatchMessages: typeof originalReadMessagesBatch
-}) => CreatePostgresSQLEventStoreSubscription
+}) => CreatePostgresSQLEventStoreSubscription<EventType>
 
 export const createMessageBatchPoolingPostgresSqlEventStoreSubscription: CreateMessageBatchPoolingBasedPostgresSqlEventStoreSubscription = ({ createConnectionPool, readBatchMessages }) => (options) => {
     let isRunning = false;
@@ -305,7 +305,14 @@ const postgreSQLEventStoreSubscriptionOskar = <
   };
 };
 
-export const postgreSQLEventStoreSubscription: CreatePostgresSQLEventStoreSubscription = postgreSQLEventStoreSubscriptionOskar 
+type OskarSubscription = typeof postgreSQLEventStoreSubscriptionOskar
+type NewSubscription = typeof postgreSQLEventStoreBatchPoolingSubscription
+
+export function assert<T extends never>() {}
+type TypeEqualityGuard<A,B> = Exclude<A,B> | Exclude<B,A>;
+
+assert<TypeEqualityGuard<OskarSubscription, NewSubscription>>()
+export const postgreSQLEventStoreSubscription: CreatePostgresSQLEventStoreSubscription = postgreSQLEventStoreBatchPoolingSubscription 
 // tu mamy zapewniony kontrakt, nieważne czy użyjemy
 // postgreSQLEventStoreBatchPoolingSubscription czy postgreSQLEventStoreSubscriptionOskar
 // zwykły odbiorca nie wie co dostaje, bo to jest chowane w module
