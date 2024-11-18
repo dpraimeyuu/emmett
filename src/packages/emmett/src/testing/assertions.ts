@@ -36,7 +36,16 @@ export const assertThrowsAsync = async <TError extends Error>(
     throw new AssertionError("Function didn't throw expected error");
   } catch (error) {
     const typedError = error as TError;
-    if (errorCheck) assertTrue(errorCheck(typedError));
+    if (!errorCheck) {
+      assertFalse(
+        typedError instanceof AssertionError,
+        "Function didn't throw expected error",
+      );
+      return typedError;
+    }
+
+    assertTrue(errorCheck(typedError));
+
     return typedError;
   }
 };
@@ -50,7 +59,16 @@ export const assertThrows = <TError extends Error>(
     throw new AssertionError("Function didn't throw expected error");
   } catch (error) {
     const typedError = error as TError;
-    if (errorCheck) assertTrue(errorCheck(typedError));
+    if (!errorCheck) {
+      assertFalse(
+        typedError instanceof AssertionError,
+        "Function didn't throw expected error",
+      );
+      return typedError;
+    }
+
+    assertTrue(errorCheck(typedError));
+
     return typedError;
   }
 };
@@ -116,14 +134,16 @@ export function assertFalse(
   condition: boolean,
   message?: string,
 ): asserts condition is false {
-  if (condition) throw new AssertionError(message ?? `Condition is false`);
+  if (condition !== false)
+    throw new AssertionError(message ?? `Condition is true`);
 }
 
 export function assertTrue(
   condition: boolean,
   message?: string,
 ): asserts condition is true {
-  if (!condition) throw new AssertionError(message ?? `Condition is false`);
+  if (condition !== true)
+    throw new AssertionError(message ?? `Condition is false`);
 }
 
 export function assertOk<T>(
@@ -251,10 +271,14 @@ export const assertThatArray = <T>(array: T[]) => {
     isEmpty: () => assertEqual(array.length, 0),
     isNotEmpty: () => assertNotEqual(array.length, 0),
     hasSize: (length: number) => assertEqual(array.length, length),
-    containsElements: (...other: T[]) => {
-      assertTrue(other.every((ts) => other.some((o) => deepEquals(ts, o))));
+    containsElements: (other: T[]) => {
+      assertTrue(other.every((ts) => array.some((o) => deepEquals(ts, o))));
     },
-    containsExactlyInAnyOrder: (...other: T[]) => {
+    containsElementsMatching: (other: T[]) => {
+      assertMatches(array, other);
+      assertTrue(other.every((ts) => array.some((o) => isSubset(o, ts))));
+    },
+    containsExactlyInAnyOrder: (other: T[]) => {
       assertEqual(array.length, other.length);
       assertTrue(array.every((ts) => other.some((o) => deepEquals(ts, o))));
     },
@@ -282,7 +306,7 @@ export const assertThatArray = <T>(array: T[]) => {
           .filter((a) => a === 1).length === other.length,
       );
     },
-    containsAnyOf: (...other: T[]) => {
+    containsAnyOf: (other: T[]) => {
       assertTrue(array.some((a) => other.some((o) => deepEquals(a, o))));
     },
     allMatch: (matches: (item: T) => boolean) => {
